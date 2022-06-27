@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
         len = strlen(argv[2]) + 1;
         len = len < 1024 ? len : 1024;
         ret = write(fd, argv[2], len);
-        printf("write driver: %d\n", ret);
+        printf("write driver: %d\n", len);
     }
     else
     {
