@@ -2,8 +2,17 @@
 #include <linux/module.h>
 #include <linux/uaccess.h>
 #include <asm/io.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
 
-static int major = 0;
+static int major;   // 主设备号
+static int minor;   // 次设备号
+static dev_t devid; // 设备号
+static char*  led_name = "led"; // name
+static struct cdev led_cdev;    // cdev
+static struct class*  led_class; // class
+static struct device* led_device;// device
+
 static char led_status[1];
 
 /* GPJ2 寄存器组物理地址 */
@@ -96,9 +105,27 @@ static int __init led_init(void) {
 
 
     printk("led_init.\r\n");
-    major = register_chrdev(0, "led", &led_ops);
+
+    if(major) {
+        devid = MKDEV(major, 0);
+        register_chrdev_region(devid, 1, led_name);
+    } else {
+        /* 申请设备号 */
+        alloc_chrdev_region(&devid, 0, 1, led_name);
+        major = MAJOR(devid); /* 申请的主设备号  */
+        minor = MINOR(devid); /* 申请的次设备号 */
+    }
+
+    cdev_init(&led_cdev, &led_ops);
+    cdev_add(&led_cdev, devid, 1);
     // 可以通过 cat /proc/devices 查看
     printk("major:%d\r\n", major);
+
+    /* 创建类 */
+    led_class = class_create(THIS_MODULE, led_name);
+
+    /* 创建设备 */
+    led_device = device_create(led_class, NULL, devid, NULL, led_name);
 
     return 0;
 }
@@ -113,7 +140,10 @@ static void __exit led_exit(void) {
     iounmap(GPJ2DRV_VA);
     iounmap(GPJ2CONPDN_VA);
     iounmap(GPJ2PUDPDN_VA);
-    unregister_chrdev(major, "led");
+
+    unregister_chrdev_region(major, led_name);
+    cdev_del(&led_cdev);
+    device_destroy(led_class, devid);
 }
 
 MODULE_LICENSE("GPL");
