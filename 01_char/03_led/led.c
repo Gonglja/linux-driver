@@ -5,41 +5,44 @@
 #include <linux/cdev.h>
 #include <linux/device.h>
 
-static int major;   // 主设备号
-static int minor;   // 次设备号
-static dev_t devid; // 设备号
-static char*  led_name = "led"; // name
-static struct cdev led_cdev;    // cdev
-static struct class*  led_class; // class
-static struct device* led_device;// device
-
 static char led_status[1];
+
+struct led_dev{
+    dev_t           devid;      /* 设备号 */
+    struct cdev     cdev;       /* cdev  */
+    struct class    *class;     /* class */
+    struct device   *device;    /* device */
+    char            *name;      /* name */
+    int             major;      /* 主设备号 */
+    int             minor;      /* 次设备号 */
+};
+
+static struct led_dev leddev;
 
 /* GPJ2 寄存器组物理地址 */
 #define GPJ2CON_PA      (0xE0200280)
 #define GPJ2DAT_PA      (0xE0200284)
-#define GPJ2PUD_PA      (0xE0200288)
-#define GPJ2DRV_PA      (0xE020028C)
-#define GPJ2CONPDN_PA   (0xE0200290)
-#define GPJ2PUDPDN_PA   (0xE0200294)
+// #define GPJ2PUD_PA      (0xE0200288)
+// #define GPJ2DRV_PA      (0xE020028C)
+// #define GPJ2CONPDN_PA   (0xE0200290)
+// #define GPJ2PUDPDN_PA   (0xE0200294)
 
 /* 经MMU映射后的地址 */
 static void __iomem *GPJ2CON_VA;
 static void __iomem *GPJ2DAT_VA;
-static void __iomem *GPJ2PUD_VA;
-static void __iomem *GPJ2DRV_VA;
-static void __iomem *GPJ2CONPDN_VA;
-static void __iomem *GPJ2PUDPDN_VA;
+// static void __iomem *GPJ2PUD_VA;
+// static void __iomem *GPJ2DRV_VA;
+// static void __iomem *GPJ2CONPDN_VA;
+// static void __iomem *GPJ2PUDPDN_VA;
 
 
 static int led_open(struct inode *node, struct file *file) {
-    printk("led_open.\r\n");
+    file->private_data = &leddev;   /* 设置私有数据 */
 	return 0;
 }
 
 
 static int led_release(struct inode *node, struct file *file) {
-    printk("led_release.\r\n");
     return 0;
 }
 
@@ -83,67 +86,68 @@ static struct file_operations led_ops = {
 
 /* 模块入口 */
 static int __init led_init(void) {
-    printk("-----------------------------------------------\r\n");
-    // 映射后的地址
+
+    /* 映射后的地址 */
     GPJ2CON_VA    = ioremap(GPJ2CON_PA, 4);
     GPJ2DAT_VA    = ioremap(GPJ2DAT_PA, 4);
-    GPJ2PUD_VA    = ioremap(GPJ2PUD_PA, 4);
-    GPJ2DRV_VA    = ioremap(GPJ2DRV_PA, 4);
-    GPJ2CONPDN_VA = ioremap(GPJ2CONPDN_PA, 4);
-    GPJ2PUDPDN_VA = ioremap(GPJ2PUDPDN_PA, 4);
+    // GPJ2PUD_VA    = ioremap(GPJ2PUD_PA, 4);
+    // GPJ2DRV_VA    = ioremap(GPJ2DRV_PA, 4);
+    // GPJ2CONPDN_VA = ioremap(GPJ2CONPDN_PA, 4);
+    // GPJ2PUDPDN_VA = ioremap(GPJ2PUDPDN_PA, 4);
     
-    // 使能时钟
+    /* 使能时钟    -- 不需要 */
+    /* 上下拉配置  -- 不需要 */
 
-    // 不需要上下拉
-
-    // 配置低16位为输出模式
+    /* 配置低16位为输出模式 */
     writel(0x00001111, GPJ2CON_VA);
 
-    // 默认置高，全部关闭 
+    /* 默认置高，全部关闭  */
     led_status[0] = 0xFF;
     writel(led_status[0], GPJ2DAT_VA);
 
-
-    printk("led_init.\r\n");
-
-    if(major) {
-        devid = MKDEV(major, 0);
-        register_chrdev_region(devid, 1, led_name);
+    leddev.name = "led";
+    /* 如果主设备号不为空，则注册设备*/
+    if(leddev.major) {
+        leddev.devid = MKDEV(leddev.major, 0);
+        register_chrdev_region(leddev.devid, 1, leddev.name);
     } else {
-        /* 申请设备号 */
-        alloc_chrdev_region(&devid, 0, 1, led_name);
-        major = MAJOR(devid); /* 申请的主设备号  */
-        minor = MINOR(devid); /* 申请的次设备号 */
+        /* 否则申请设备号 */
+        alloc_chrdev_region(&leddev.devid, 0, 1, leddev.name);
+        leddev.major = MAJOR(leddev.devid); /* 申请的主设备号  */
+        leddev.minor = MINOR(leddev.devid); /* 申请的次设备号 */
     }
+    /* cdev结构初始化，cdev 表示一个字符设备 */
+    cdev_init(&leddev.cdev, &led_ops);
 
-    cdev_init(&led_cdev, &led_ops);
-    cdev_add(&led_cdev, devid, 1);
-    // 可以通过 cat /proc/devices 查看
-    printk("major:%d\r\n", major);
+    /* cdev 添加设备*/
+    cdev_add(&leddev.cdev, leddev.devid, 1);
 
-    /* 创建类 */
-    led_class = class_create(THIS_MODULE, led_name);
+    /* 可以通过 cat /proc/devices 查看 */
+    printk("major:%d\r\n", leddev.major);
 
-    /* 创建设备 */
-    led_device = device_create(led_class, NULL, devid, NULL, led_name);
+    /* class 创建类 */
+    leddev.class = class_create(THIS_MODULE, leddev.name);
+
+    /* device 创建设备 */
+    leddev.device = device_create(leddev.class, NULL, leddev.devid, NULL, leddev.name);
 
     return 0;
 }
 
 /* 模块出口 */
 static void __exit led_exit(void) {
-    printk("led_exit.\r\n");
+
     /* 取消映射 */
     iounmap(GPJ2CON_VA);
     iounmap(GPJ2DAT_VA);
-    iounmap(GPJ2PUD_VA);
-    iounmap(GPJ2DRV_VA);
-    iounmap(GPJ2CONPDN_VA);
-    iounmap(GPJ2PUDPDN_VA);
-
-    unregister_chrdev_region(major, led_name);
-    cdev_del(&led_cdev);
-    device_destroy(led_class, devid);
+    // iounmap(GPJ2PUD_VA);
+    // iounmap(GPJ2DRV_VA);
+    // iounmap(GPJ2CONPDN_VA);
+    // iounmap(GPJ2PUDPDN_VA);
+    cdev_del(&leddev.cdev);
+    unregister_chrdev_region(leddev.major, 1);
+    device_destroy(leddev.class, leddev.devid);
+    class_destroy(leddev.class);
 }
 
 MODULE_LICENSE("GPL");

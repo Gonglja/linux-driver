@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 
 
 /*
@@ -38,7 +39,7 @@ int main(int argc, char **argv) {
         len = strlen(argv[2]) + 1;
         len = 1;
         char status[1];
-        status[0] = strtol(argv[2],status, 16);
+        status[0] = strtol(argv[2], status, 16);
         printf("status:%d\r\n",status[0]);
         ret = write(fd, status, len);
     }
