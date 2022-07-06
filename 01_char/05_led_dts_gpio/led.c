@@ -24,9 +24,6 @@ struct led_dev{
 
 static struct led_dev leddev;
 
-/* 经MMU映射后的地址 */
-static void __iomem *GPJ2CON_VA;
-static void __iomem *GPJ2DAT_VA;
 
 static int led_open(struct inode *node, struct file *file) {
     file->private_data = &leddev;   /* 设置私有数据 */
@@ -149,9 +146,6 @@ static int __init led_init(void) {
 /* 模块出口 */
 static void __exit led_exit(void) {
 
-    /* 取消映射 */
-    iounmap(GPJ2CON_VA);
-    iounmap(GPJ2DAT_VA);
     cdev_del(&leddev.cdev);
     unregister_chrdev_region(leddev.major, 1);
     device_destroy(leddev.class, leddev.devid);
