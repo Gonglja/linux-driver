@@ -67,6 +67,8 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		compatible = "s5pv210,led";
+		/* 此处 pinctl 会在驱动pinctl加载时自动设置寄存器值，不需要在驱动中进行设置，但在此板卡中暂未生效，不知何原因。*/
+		/* 可以正常加载了，需要使用 platform_driver 只有当设备树中的compatible与`platform_driver`中的`of_device_id`中的compatible匹配成功，则可使pinctrl生效 */
 		pinctrl-name = "default";
 		pinctrl-0 = <&led_pinctrl>;
 		status = "okay";
