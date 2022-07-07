@@ -26,18 +26,21 @@ struct led_dev{
 static struct led_dev leddev;
 
 
-static int led_open(struct inode *node, struct file *file) {
+static int led_open(struct inode *node, struct file *file) 
+{
     file->private_data = &leddev;   /* 设置私有数据 */
 	return 0;
 }
 
 
-static int led_release(struct inode *node, struct file *file) {
+static int led_release(struct inode *node, struct file *file) 
+{
     return 0;
 }
 
 
-static ssize_t led_read(struct file *file, char __user *buf, size_t size, loff_t *offset) {
+static ssize_t led_read(struct file *file, char __user *buf, size_t size, loff_t *offset) 
+{
     int ret = copy_to_user(buf, led_status, 1);
     if( ret == 0 ) {
         printk("kernel senddata ok!\r\n");
@@ -48,7 +51,8 @@ static ssize_t led_read(struct file *file, char __user *buf, size_t size, loff_t
 }
 
 
-static ssize_t led_write(struct file *file, const char __user *buf, size_t size, loff_t *offset) {
+static ssize_t led_write(struct file *file, const char __user *buf, size_t size, loff_t *offset) 
+{
     struct led_dev *dev = file->private_data;
     printk("kernel recvdata size:%u \r\n", size);
     if(size == 1) {
@@ -155,7 +159,6 @@ static const struct of_device_id of_leds_match[] = {
     { .compatible = "s5pv210,led", },
     {},
 };
-
 MODULE_DEVICE_TABLE(of, of_leds_match);
 
 static struct platform_driver leds_driver = {
