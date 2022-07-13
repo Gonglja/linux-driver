@@ -13,7 +13,7 @@
 |06_led_dts_pinctrl_platform|arm|:heavy_check_mark:|添加pinctrl子系统，其目的是配置io的复用和电气特性；由于其在platfrom下会自动初始化，我么们只需要配置好设备树就可以了，遂在驱动外层 包裹 platform。|
 |07_buzzer_dts_pinctrl_platform|arm|:heavy_check_mark:|上述都是基于led的，修改为 板子上的蜂鸣器。|
 |08_led_atomic|arm|:heavy_check_mark:| 添加原子变量，当设备被占用时，再次打开会报错<br> insmod led.ko后，通过命令打开./led_test -w 1 & 之后再次使用该命令打开，则会报错|
-|09_led_spinlock|arm|||
+|09_led_spinlock|arm|:heavy_check_mark:|使用自旋锁，保护一个设备状态变量，当设备打打开时，检测设备状态，如果被打开了，则解锁退出，否则更新设备状态，解锁|
 |10_led_semaphore|arm|||
 |11_led_mutex|arm|||
 |||||
