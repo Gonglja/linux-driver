@@ -16,5 +16,5 @@
 |09_led_spinlock|arm|:heavy_check_mark:|使用自旋锁，保护一个设备状态变量，当设备打打开时，检测设备状态，如果被打开了，则解锁退出，否则更新设备状态，解锁|
 |10_led_semaphore|arm|:heavy_check_mark:|使用信号量，当打开设备时，获取信号量，如果信号量被使用，进程休眠等待信号量释放被唤醒，信号未使用，则直接打开设备，关闭设备时，释放信号量|
 |11_led_mutex|arm|:heavy_check_mark:|与10信号量现象一致|
-|||||
+|12_key_input|arm|||
 
