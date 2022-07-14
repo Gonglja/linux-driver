@@ -26,12 +26,12 @@ int main(int argc, char **argv) {
 
     
     /* 2. 打开文件 */
-    fd = open("/dev/led", O_RDWR);
+    fd = open("/dev/key", O_RDWR);
     if(fd == -1) {
-        printf("can not open file /dev/led\n");
+        printf("can not open file /dev/key\n");
         return -1;
     }
-    printf("open file /dev/led ok\n");
+    printf("open file /dev/key ok\n");
 
     /* 3. 写文件或读文件 */
     if ((0 == strcmp(argv[1], "-w")) && (argc == 3))
@@ -48,12 +48,7 @@ int main(int argc, char **argv) {
         len = read(fd, buf, 1024);		
         printf("APP read size: %d\n", len);
         buf[1023] = '\0';
-        printf("APP read buff: %s\n", buf);
-    }
-    /* 写完之后超时10s后关闭句柄 */
-    int timeout=10;
-    while(timeout--) {
-        sleep(1);
+        printf("APP read buff: %#x\n", buf[0]);
     }
 
     close(fd);

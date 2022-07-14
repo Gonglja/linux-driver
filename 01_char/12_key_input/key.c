@@ -11,8 +11,6 @@
 #include <linux/mutex.h>
 
 
-static char key_status[1];
-
 struct key_dev{
     dev_t               devid;      /* 设备号 */
     struct cdev         cdev;       /* cdev  */
@@ -24,9 +22,11 @@ struct key_dev{
     struct device_node  *nd;        /* 设备节点 */
     int                 keys[8];    /* 8个key的gpio编号 */
     struct mutex        mutex;      /* 互斥量 */
+    unsigned char       select[0];  /* 可选择8个按键，0x1 << i */
 };
 
 static struct key_dev keydev;
+
 
 static int key_open(struct inode *node, struct file *file) 
 {
@@ -53,7 +53,20 @@ static int key_release(struct inode *node, struct file *file)
 
 static ssize_t key_read(struct file *file, char __user *buf, size_t size, loff_t *offset) 
 {
-    int ret = copy_to_user(buf, key_status, 1);
+    int ret;
+    struct key_dev *dev = file->private_data;
+    char res[1] = {0};
+    // 先读key引脚状态，在将该状态cpoy to user
+    while(!res[0]) {
+        for(int i=0; i<8; ++i) {
+            if(dev->select[0] & (1 << i)) {
+                // 先读key引脚状态
+                res[0] |= ((gpio_get_value(dev->keys[i]) ? 0 : 1) << i);
+            }
+        }
+    }
+
+    ret = copy_to_user(buf, res, 1);
     if( ret == 0 ) {
         printk("kernel senddata ok!\r\n");
     } else {
@@ -68,16 +81,10 @@ static ssize_t key_write(struct file *file, const char __user *buf, size_t size,
     struct key_dev *dev = file->private_data;
     printk("kernel recvdata size:%u \r\n", size);
     if(size == 1) {
-        int ret = copy_from_user(key_status, buf, size);
+        int ret = copy_from_user(dev->select, buf, size);
         if( ret == 0) {
-            printk("kernel recvdata size:%u %x\r\n", size, key_status[0]);
-            for(int i=0; i<4; ++i) {
-                // if(key_status[0] & (0x1<<i)) {  /* 关闭LED */
-                //     gpio_set_value(dev->leds[i], 1);
-                // } else {                        /* 打开LED */
-                //     gpio_set_value(dev->leds[i], 0);
-                // }
-            }
+            printk("kernel recvdata size:%u buf:%#x\r\n", size, dev->select[0]);
+
         } else {
             printk("kernel recvdata failed!\r\n");
         }
@@ -100,7 +107,7 @@ static struct file_operations key_ops = {
 static int keys_probe(struct platform_device *pdev) 
 {
     int ret;
-
+    struct device_node *first_child_node=NULL;
     /* 获取设备树中的属性数据 */
     /* 1.获取设备节点：led */
     keydev.nd = of_find_node_by_path("/keys");
@@ -112,7 +119,6 @@ static int keys_probe(struct platform_device *pdev)
     }
 
     /* 2.获取led-pin 属性内容 */
-    struct device_node *first_child_node=NULL;
     for(int i=0; i<8; ++i) {
         /* 获取下一个子节点，传入两个参数，第一个为父节点，第二个如果为NULL，则返回第一个子节点，如果为上一个子节点，则返回下一个子节点*/
         first_child_node = of_get_next_child(keydev.nd, first_child_node);

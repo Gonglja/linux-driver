@@ -1,10 +1,12 @@
 # README
 
+驱动参考[【正点原子】I.MX6U嵌入式Linux驱动开发指南V1.6.pdf](../docs/【正点原子】I.MX6U嵌入式Linux驱动开发指南V1.6.pdf)
+
 
 
 |路径|平台|完成？|备注|
 |-|-|-|-|
-|01_helloworld|x86|:heavy_check_mark:|ubuntu下完成helloworld|
+|01_helloworld|arm|:heavy_check_mark:|arm下完成helloworld，如果要x86下用则需将编译链修改即可|
 |02_hello_drv|x86|:heavy_check_mark:|真正意义上的第一个字符驱动，用户与系统交互数据并打印|
 |02_hello_drv_arm|arm|:heavy_check_mark:|移植到arm侧，功能保持不变|
 |03_led|arm|:heavy_check_mark:|添加led灯，包括物理地址到虚拟地址的映射，file_operations 文件操作接口的学习|
@@ -16,5 +18,5 @@
 |09_led_spinlock|arm|:heavy_check_mark:|使用自旋锁，保护一个设备状态变量，当设备打打开时，检测设备状态，如果被打开了，则解锁退出，否则更新设备状态，解锁|
 |10_led_semaphore|arm|:heavy_check_mark:|使用信号量，当打开设备时，获取信号量，如果信号量被使用，进程休眠等待信号量释放被唤醒，信号未使用，则直接打开设备，关闭设备时，释放信号量|
 |11_led_mutex|arm|:heavy_check_mark:|与10信号量现象一致|
-|12_key_input|arm|||
+|12_key_input|arm|:heavy_check_mark:|首先配置要捕获哪个按键，接着直接读，当按键按下时，会返回当前按键的值|
 
