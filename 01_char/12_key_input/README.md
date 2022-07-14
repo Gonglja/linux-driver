@@ -168,3 +168,7 @@ APP read buff: 0x80
 # 
 
 ```
+
+
+
+/sys/kernel/debug 为空，在文件系统中添加 `debugfs /sys/kernel/debug debugfs defaults 0 0`到`/etc/fstab` 重启就可以看到里面的内容了。
