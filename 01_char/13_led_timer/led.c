@@ -12,6 +12,9 @@
 #include <linux/timer.h>
 
 
+#define CLOSE_CMD       (_IO(0xEF, 0x1))    /* close timer. */
+#define OPEN_CMD        (_IO(0xEF, 0x2))    /* open timer. */
+#define SETPERIOD_CMD   (_IO(0xEF, 0x3))    /* modify timer period */
 
 struct led_dev{
     dev_t               devid;      /* 设备号 */
@@ -57,19 +60,43 @@ static int led_release(struct inode *node, struct file *file)
     return 0;
 }
 
+static long timer_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+    struct led_dev *dev = file->private_data;
+    printk("cmd:%#x\r\n", cmd);
+    switch (cmd)
+    {
+
+    case OPEN_CMD:
+        mod_timer(&dev->timer, jiffies + msecs_to_jiffies(dev->timerperiod));
+        break;    
+        
+    case CLOSE_CMD: /* close timer. */
+        del_timer_sync(&dev->timer);
+        break;
+    
+    case SETPERIOD_CMD:
+        dev->timerperiod = arg;
+        mod_timer(&dev->timer, jiffies + msecs_to_jiffies(arg));
+        break;
+
+    default:
+        break;
+    }
+    return 0;
+}
 
 static struct file_operations led_ops = {
     .owner      = THIS_MODULE,
     .open       = led_open,
-    .release    = led_release
+    .release    = led_release,
+    .unlocked_ioctl = timer_unlocked_ioctl
 };
 
 void timer_callback(struct timer_list *tl) 
 {
     struct led_dev *dev = from_timer(dev, tl, timer);
     static int sta = 0;
-    unsigned long flags;
-
     /* bussiness: set led */
     sta = sta ? 0 : 1;
     gpio_set_value(dev->leds[0], sta);
@@ -193,5 +220,6 @@ static void __exit led_exit(void)
 }
 
 MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Gonlja");
 module_init(led_init);
 module_exit(led_exit);

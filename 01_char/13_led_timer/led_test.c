@@ -6,24 +6,24 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <sys/ioctl.h>
+
+
+#define CLOSE_CMD       (_IO(0XEF, 0x1)) /* 关闭定时器 */
+#define OPEN_CMD        (_IO(0XEF, 0x2)) /* 打开定时器 */
+#define SETPERIOD_CMD   (_IO(0XEF, 0x3)) /* 设置定时器周期命令 */
 
 /*
- * ./led_test -w 0
- * ./led_test -r
+ * ./led_test 
  */
 int main(int argc, char **argv) {
     char buf[1024];
     int fd;
     int ret;
     int len;
-
-    /* 1. 判断参数 */
-	if (argc < 2) {
-		printf("Usage: %s -w <string>\n", argv[0]);
-		printf("       %s -r\n", argv[0]);
-		return -1;
-	}
-
+    unsigned int cmd;
+    unsigned int arg;
+    unsigned char str[100];
     
     /* 2. 打开文件 */
     fd = open("/dev/led", O_RDWR);
@@ -33,27 +33,35 @@ int main(int argc, char **argv) {
     }
     printf("open file /dev/led ok\n");
 
-    /* 3. 写文件或读文件 */
-    if ((0 == strcmp(argv[1], "-w")) && (argc == 3))
-    {
-        len = strlen(argv[2]) + 1;
-        len = 1;
-        char status[1];
-        status[0] = strtol(argv[2], status, 16);
-        printf("status:%d\r\n",status[0]);
-        ret = write(fd, status, len);
-    }
-    else
-    {
-        len = read(fd, buf, 1024);		
-        printf("APP read size: %d\n", len);
-        buf[1023] = '\0';
-        printf("APP read buff: %s\n", buf);
-    }
-    /* 写完之后超时10s后关闭句柄 */
-    int timeout=10;
-    while(timeout--) {
-        sleep(1);
+    
+    while(1) {
+        printf("Input CMD:");
+        ret = scanf("%d",&cmd);
+        if( ret != -1) {
+            fgets(str, 100, stdin);
+        }
+
+        switch (cmd)
+        {
+        case 1:
+            ioctl(fd, CLOSE_CMD, arg);
+            break;
+        case 2:
+            ioctl(fd, OPEN_CMD, arg);
+            break;
+        case 3:
+            printf("Input Timer Period:");
+            ret = scanf("%d",&arg);
+            if( ret != -1) {
+                fgets(str, 100, stdin);
+            }
+            ioctl(fd, SETPERIOD_CMD, arg);
+            break;
+        
+        default:
+            break;
+        }
+        usleep(100);
     }
 
     close(fd);
