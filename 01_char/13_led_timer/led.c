@@ -138,13 +138,14 @@ static int led_probe(struct platform_device *pdev)
     leddev.device = device_create(leddev.class, NULL, leddev.devid, NULL, leddev.name);
 
     /* init timer */
-    leddev.timerperiod = 1000;
+    leddev.timerperiod = 500;
     timer_setup(&leddev.timer, timer_callback, 0U);
 
     /* add timer */
+    leddev.timer.expires = leddev.timerperiod;
     add_timer(&leddev.timer);
 
-    mod_timer(&leddev.timer, jiffies + msecs_to_jiffies(leddev.timerperiod));
+    // mod_timer(&leddev.timer, jiffies + msecs_to_jiffies(leddev.timerperiod));
 
     return 0;
 }
