@@ -16,6 +16,17 @@
 #define OPEN_CMD        (_IO(0xEF, 0x2))    /* open timer. */
 #define SETPERIOD_CMD   (_IO(0xEF, 0x3))    /* modify timer period */
 
+/**
+ * _IO
+ * #define _IO(type,nr)
+ *  _IOC(0U,(type),(nr),0)
+ *      (((0U)  << 30) | \
+	    ((type) << 8) | \
+	    ((nr)   << 0) | \
+	    ((0)    << 16))
+        展开后也就是一个 uint32_t 的数据，所以可以用作case。
+ */
+
 struct led_dev{
     dev_t               devid;      /* 设备号 */
     struct cdev         cdev;       /* cdev  */
@@ -41,7 +52,6 @@ static int led_open(struct inode *node, struct file *file)
 {
     file->private_data = &leddev;   /* 设置私有数据 */
 
-    // leddev.timerperiod = 1000;      /* default:1000ms */
     /* 获取互斥锁，进入休眠状态的进程可以被信号打断 */
 	if(mutex_lock_interruptible(&leddev.mutex)) {
         return -ERESTARTSYS;
@@ -67,7 +77,7 @@ static long timer_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned l
     switch (cmd)
     {
 
-    case OPEN_CMD:
+    case OPEN_CMD:  /* open timer. */
         mod_timer(&dev->timer, jiffies + msecs_to_jiffies(dev->timerperiod));
         break;    
         
@@ -75,7 +85,7 @@ static long timer_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned l
         del_timer_sync(&dev->timer);
         break;
     
-    case SETPERIOD_CMD:
+    case SETPERIOD_CMD:/* set timer period. */
         dev->timerperiod = arg;
         mod_timer(&dev->timer, jiffies + msecs_to_jiffies(arg));
         break;
