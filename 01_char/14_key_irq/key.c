@@ -138,7 +138,8 @@ void timer_callback(struct timer_list *tl)
     
     num = dev->curkeynum;
     key = &dev->keyirq[num];
-    key->val = gpio_get_value(&dev->keys[num]);
+    key->val = gpio_get_value(dev->keys[num]);
+    printk("num:%d key_val:%d\r\n",dev->keys[num], key->val);
 
 }
 
@@ -180,10 +181,7 @@ static int keys_probe(struct platform_device *pdev)
         printk("keydev.keyirq[i].irqnum %#x\r\n", keydev.keyirq[i].irqnum);
     }
     
-    /* 3. 设置pin脚为输入模式 */
-
-    
-    /* req interrupt */
+    /* 3. request interrupt */
     keydev.keyirq[0].handler = key_handler;
     keydev.keyirq[0].val     = 0x1;
 
@@ -231,6 +229,9 @@ static int keys_probe(struct platform_device *pdev)
 
 static int keys_remove(struct platform_device *pdev) 
 {
+    // for(int i=0;i<KEY_NUM; ++i) 
+    /* 释放中断 */
+    free_irq(keydev.keyirq[0].irqnum, &keydev);
     cdev_del(&keydev.cdev);
     unregister_chrdev_region(keydev.major, 1);
     device_destroy(keydev.class, keydev.devid);
@@ -270,5 +271,6 @@ static void __exit keys_exit(void)
 }
 
 MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Gonlja");
 module_init(keys_init);
 module_exit(keys_exit);
