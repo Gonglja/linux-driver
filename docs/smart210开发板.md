@@ -30,7 +30,7 @@ PC环境：Win10 + Vmware 16.10
 
 虚拟机：ubuntu22.04 lts，arm-buildroot-linux-gnueabi-gcc.br_real (Buildroot 2022.02) 11.2.0
 
-板子环境：[u-boot2014.4](https://github.com/Gonglja/u-boot-smart210) + [Linux Lastest](https://github.com/Gonglja/linux) + buildroot 构建的 rootfs
+板子环境：[u-boot2014.4](https://github.com/Gonglja/u-boot-smart210) + [Linux Latest](https://github.com/Gonglja/linux) + [buildroot 2022.03](https://buildroot.org/downloads/buildroot-2022.02.3.tar.gz) 构建的 rootfs
 
 **注意编译linux、rootfs、linux-driver使用的交叉编译工具链需保持一致！！！**
 

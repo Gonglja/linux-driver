@@ -1,174 +1,119 @@
-## 更新前
 
-~~目前插入、卸载驱动正常。设备树可正常识别出来~~
-设备树如下，通过 of_get_next_child 获取子节点
+设备树改变详见 
+https://github.com/Gonglja/linux/commit/ab11bf7f145b305e191abb08d1a051c591fdac7c
+
+
 ```c
-/{
+/{ 
     keys: keys {
 		compatible = "smart210,keys";
 		pinctrl-name = "default";
 		pinctrl-0 = <&pinctrl_keys>;
 		status="okay";
-		button1 {
-			gpio-pin = <&gph2 0 0>;
-		};		
-		
-		button2 {
-			gpio-pin = <&gph2 1 0>;
-		};		
-		
-		button3 {
-			gpio-pin = <&gph2 2 0>;
-		};		
-		
-		button4 {
-			gpio-pin = <&gph2 3 0>;
-		};		
-		
-		button5 {
-			gpio-pin = <&gph3 0 0>;
-		};		
-		
-		button6 {
-			gpio-pin = <&gph3 1 0>;
-		};		
-		
-		button7 {
-			gpio-pin = <&gph3 2 0>;
-		};		
-		
-		button8 {
-			gpio-pin = <&gph3 3 0>;
-		};
+
+		interrupt-parent = <&gph2>;
+		interrupts = <0 IRQ_TYPE_EDGE_BOTH>;
+		...
 	};
 };
 
-
-&pinctrl0 {
-    ...
-    pinctrl_keys: keysgrp {
-		samsung,pins = "gph2-0", "gph2-1", "gph2-2", "gph2-3", 
-					   "gph3-0", "gph3-1", "gph3-2", "gph3-3";
-		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
-		samsung,pin-pud = <S3C64XX_PIN_PULL_UP>;
-		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
-	};
-}
-
 ```
 
-
-```shell
-# insmod  key.ko 
-[ 1286.690792][  T119] key_init
-[ 1286.691541][  T119] keys node has been found!
-[ 1286.691632][  T119] gpio-pin num[0] = 221 
-[ 1286.691699][  T119] gpio-pin num[1] = 222 
-[ 1286.691757][  T119] gpio-pin num[2] = 223 
-[ 1286.691816][  T119] gpio-pin num[3] = 224 
-[ 1286.692584][  T119] gpio-pin num[4] = 229 
-[ 1286.696743][  T119] gpio-pin num[5] = 230 
-[ 1286.705111][  T119] gpio-pin num[6] = 231 
-[ 1286.705201][  T119] gpio-pin num[7] = 232 
-[ 1286.709890][  T119] major:250
-# rmmod key
-[ 1288.260512][  T121] key_exit
-# 
-
+主要添加了
 ```
+		interrupt-parent = <&gph2>;
+		interrupts = <0 IRQ_TYPE_EDGE_BOTH>;
+```
+- interrupt-parent 表示中断的父节点是`gph2`
+- interrupts 
+	- 第一个值`0`为哪个`gph2`下的第`0`个 io，也即`gph2-0`
+	- 第二个值`IRQ_TYPE_EDGE_BOTH`指的是中断触发方式，在这里设置为双边沿，具体可查看`include/dt-bindings/interrupt-controller/irq.h`
 
 
-
----
-
-## 更新后
-
-通过 `./key_test -w ff `设置8个按键均可被捕获，
-此时通过`./key_test -r ` 就可以等待捕获，直到有按键被按下，打印出按键编号，也即是当button1 按下时，打印0x1，当button2按下时，打印0x2 ...
-
-| bits | buttonx |
-| ---- | ------- |
-| 0    | button1 |
-| 1    | button2 |
-| 2    | button3 |
-| 3    | button4 |
-| 4    | button5 |
-| 5    | button6 |
-| 6    | button7 |
-| 7    | button8 |
-
-具体日志看下面
+**实验结果**如下
 
 ```shell
-# 
 # ls
-buzzer.ko       hello_drv.ko    key.ko          led.ko
-buzzer_test     hello_drv_test  key_test        led_test
+driver
+# cat /proc/interrupts 
+           CPU0       
+ 34:          0       VIC  18 Edge      fa200000.dma-controller
+ 35:          0       VIC  19 Edge      e0900000.dma-controller
+ 36:          0       VIC  20 Edge      e0a00000.dma-controller
+ 39:       1394       VIC  23 Edge      samsung_time_irq
+ 46:          0       VIC  30 Edge      e0200000.pinctrl
+ 58:        205       VIC  10 Edge      e2900000.serial
+ 62:          0       VIC  14 Edge      e1800000.i2c
+ 72:          1       VIC  24 Edge      ec000000.hsotg, dwc2_hsotg:usb1
+144:       3306      gph0   7 Level     eth0
+Err:          0
+# cd driver/
 # insmod key.ko 
-[   49.052784][  T109] key: loading out-of-tree module taints kernel.
-[   49.053730][  T109] key_init
-[   49.054554][  T109] keys node has been found!
-[   49.054648][  T109] gpio-pin num[0] = 221 
-[   49.054718][  T109] gpio-pin num[1] = 222 
-[   49.054780][  T109] gpio-pin num[2] = 223 
-[   49.056577][  T109] gpio-pin num[3] = 224 
-[   49.062772][  T109] gpio-pin num[4] = 229 
-[   49.065408][  T109] gpio-pin num[5] = 230 
-[   49.072627][  T109] gpio-pin num[6] = 231 
-[   49.073227][  T109] gpio-pin num[7] = 232 
-[   49.077400][  T109] major:251
-# ./key_test -w ff
-open file /dev/key ok
-status:255
-[   66.365454][  T110] kernel recvdata size:1 
-[   66.365533][  T110] kernel recvdata size:1 buf:0xff
-# ./key_test -r 
-open file /dev/key ok
-[   79.272283][  T111] kernel senddata ok!
-APP read size: 0
-APP read buff: 0x1
-# ./key_test -r 
-open file /dev/key ok
-[   82.443276][  T112] kernel senddata ok!
-APP read size: 0
-APP read buff: 0x2
-# ./key_test -r 
-open file /dev/key ok
-[   83.986593][  T113] kernel senddata ok!
-APP read size: 0
-APP read buff: 0x4
-# ./key_test -r 
-open file /dev/key ok
-[   85.502276][  T114] kernel senddata ok!
-APP read size: 0
-APP read buff: 0x8
-# ./key_test -r 
-open file /dev/key ok
-[   87.175377][  T115] kernel senddata ok!
-APP read size: 0
-APP read buff: 0x10
-# ./key_test -r 
-open file /dev/key ok
-[   88.528172][  T116] kernel senddata ok!
-APP read size: 0
-APP read buff: 0x20
-# ./key_test -r 
-open file /dev/key ok
-[   89.975625][  T117] kernel senddata ok!
-APP read size: 0
-APP read buff: 0x40
-# ./key_test -r 
-open file /dev/key ok
-[   92.662628][  T118] kernel senddata ok!
-APP read size: 0
-APP read buff: 0x80
-# rmmod key
-[  106.491140][  T119] key_exit
+[   27.601386][  T108] key: loading out-of-tree module taints kernel.
+[   27.602270][  T108] key_init
+[   27.603035][  T108] keys node has been found!
+[   27.603128][  T108] gpio-pin num[0] = 221 
+[   27.603304][  T108] keydev.keyirq[i].irqnum 0x91
+[   27.603391][  T108] gpio-pin num[1] = 222 
+[   27.605697][  T108] keydev.keyirq[i].irqnum 0x0
+[   27.612351][  T108] gpio-pin num[2] = 223 
+[   27.617755][  T108] keydev.keyirq[i].irqnum 0x0
+[   27.619059][  T108] gpio-pin num[3] = 224 
+[   27.623202][  T108] keydev.keyirq[i].irqnum 0x0
+[   27.628679][  T108] gpio-pin num[4] = 229 
+[   27.631967][  T108] keydev.keyirq[i].irqnum 0x0
+[   27.637199][  T108] gpio-pin num[5] = 230 
+[   27.640718][  T108] keydev.keyirq[i].irqnum 0x0
+[   27.645300][  T108] gpio-pin num[6] = 231 
+[   27.650244][  T108] keydev.keyirq[i].irqnum 0x0
+[   27.654064][  T108] gpio-pin num[7] = 232 
+[   27.658954][  T108] keydev.keyirq[i].irqnum 0x0
+[   27.662855][  T108] irq 0 request failed!
+[   27.667496][  T108] irq 0 request failed!
+[   27.670933][  T108] irq 0 request failed!
+[   27.675003][  T108] irq 0 request failed!
+[   27.679792][  T108] irq 0 request failed!
+[   27.683152][  T108] irq 0 request failed!
+[   27.687799][  T108] irq 0 request failed!
+[   27.691308][  T108] major:251
+# [   27.896279][    C0] num:221 key_val:1
+
 # 
+# 
+# [   33.376279][    C0] num:221 key_val:0
+[   33.496276][    C0] num:221 key_val:1
+[   35.636277][    C0] num:221 key_val:0
+[   36.806276][    C0] num:221 key_val:1
+[   37.916284][    C0] num:221 key_val:0
+[   39.806275][    C0] num:221 key_val:1
+[   40.466281][    C0] num:221 key_val:0
+[   40.596274][    C0] num:221 key_val:1
+[   40.726286][    C0] num:221 key_val:0
+[   40.846287][    C0] num:221 key_val:1
+[   40.956293][    C0] num:221 key_val:0
+[   41.046287][    C0] num:221 key_val:1
+[   41.166274][    C0] num:221 key_val:0
+[   41.256286][    C0] num:221 key_val:1
+
+# 
+# cat /proc/interrupts 
+           CPU0       
+ 34:          0       VIC  18 Edge      fa200000.dma-controller
+ 35:          0       VIC  19 Edge      e0900000.dma-controller
+ 36:          0       VIC  20 Edge      e0a00000.dma-controller
+ 39:       1655       VIC  23 Edge      samsung_time_irq
+ 46:          0       VIC  30 Edge      e0200000.pinctrl
+ 58:        478       VIC  10 Edge      e2900000.serial
+ 62:          0       VIC  14 Edge      e1800000.i2c
+ 72:          1       VIC  24 Edge      ec000000.hsotg, dwc2_hsotg:usb1
+144:       3547      gph0   7 Level     eth0
+145:         15      gph2   0 Edge      KEY0
+Err:          0
+# rmmod key
+[   55.857130][  T110] key_exit
 # 
 
 ```
 
 
-
-/sys/kernel/debug 为空，在文件系统中添加 `debugfs /sys/kernel/debug debugfs defaults 0 0`到`/etc/fstab` 重启就可以看到里面的内容了。
+参考 https://to-run-away.blog.csdn.net/article/details/88080880?spm=1001.2014.3001.5502
