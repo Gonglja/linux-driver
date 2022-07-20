@@ -12,6 +12,7 @@
 #include <linux/timer.h>        /* timer_list/timer_setup/mod_timer */
 #include <linux/of_irq.h>       /* irq_of_parse_and_map */
 #include <linux/interrupt.h>    /* request_itq */
+#include <linux/atomic.h>
 
 
 #define KEY_NUM         8
@@ -20,7 +21,8 @@
 struct key_irq {
     int                 gpio;       /* gpio num */
     int                 irqnum;     /* irq num  */
-    unsigned char       val;        /* key value */
+    atomic_t            val;        /* key value */
+    atomic_t            releasekey; /* release key */
     char                name[10];   /* name */
     irqreturn_t         (*handler)(int, void *); /* interrupt handler */
 };
@@ -74,23 +76,27 @@ static ssize_t key_read(struct file *file, char __user *buf, size_t size, loff_t
     int ret;
     struct key_dev *dev = file->private_data;
     char res[1] = {0};
-    // 先读key引脚状态，在将该状态cpoy to user
-    while(!res[0]) {
-        for(int i=0; i<8; ++i) {
-            if(dev->select[0] & (1 << i)) {
-                // 先读key引脚状态
-                res[0] |= ((gpio_get_value(dev->keys[i]) ? 0 : 1) << i);
-            }
+    unsigned int releasekey;
+
+    res[0] = atomic_read(&keydev.keyirq[0].val) ? 1 : 0;
+    releasekey = atomic_read(&keydev.keyirq[0].releasekey);
+
+    if(releasekey) {
+        atomic_set(&keydev.keyirq[0].releasekey, 0);
+        ret = copy_to_user(buf, res, 1);
+        if( ret == 0 ) {
+            printk("kernel senddata ok!\r\n");
+        } else {
+            printk("kernel senddata failed!\r\n");
         }
+    } else {
+        goto data_error;
     }
 
-    ret = copy_to_user(buf, res, 1);
-    if( ret == 0 ) {
-        printk("kernel senddata ok!\r\n");
-    } else {
-        printk("kernel senddata failed!\r\n");
-    }
     return 0;
+
+data_error:
+    return -EINVAL;
 }
 
 
@@ -135,11 +141,13 @@ void timer_callback(struct timer_list *tl)
     unsigned char num;
     struct key_irq *key;
     struct key_dev *dev = from_timer(dev, tl, timer);
-    
+    int val;
     num = dev->curkeynum;
     key = &dev->keyirq[num];
-    key->val = gpio_get_value(dev->keys[num]);
-    printk("num:%d key_val:%d\r\n",dev->keys[num], key->val);
+    val = gpio_get_value(dev->keys[num]) ? 0 : 1;
+    atomic_set(&key->val,val);
+    atomic_set(&key->releasekey,1);
+    printk("num:%d key_val:%d\r\n",dev->keys[num], val);
 
 }
 
@@ -183,7 +191,8 @@ static int keys_probe(struct platform_device *pdev)
     
     /* 3. request interrupt */
     keydev.keyirq[0].handler = key_handler;
-    keydev.keyirq[0].val     = 0x1;
+    atomic_set(&keydev.keyirq[0].val, 0x1);
+    atomic_set(&keydev.keyirq[0].releasekey, 0x0);
 
     for(int i=0; i<KEY_NUM; ++i) {
         ret = request_irq(keydev.keyirq[i].irqnum, keydev.keyirq[i].handler,
@@ -271,6 +280,6 @@ static void __exit keys_exit(void)
 }
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Gonlja");
+MODULE_AUTHOR("Gonglja");
 module_init(keys_init);
 module_exit(keys_exit);

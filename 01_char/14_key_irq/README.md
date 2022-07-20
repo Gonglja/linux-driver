@@ -30,7 +30,7 @@ https://github.com/Gonglja/linux/commit/ab11bf7f145b305e191abb08d1a051c591fdac7c
 	- 第二个值`IRQ_TYPE_EDGE_BOTH`指的是中断触发方式，在这里设置为双边沿，具体可查看`include/dt-bindings/interrupt-controller/irq.h`
 
 
-**实验结果**如下
+~~**实验结果**如下~~
 
 ```shell
 # ls
@@ -115,5 +115,109 @@ Err:          0
 
 ```
 
+
+**实验结果如下**，首先加载该模块，当按键按下后，触发内核中断，在中断任务中打开定时器，定时器时间到后执行定时器回调任务，更新按键值，更新按键状态；当App通过read调用内核中read函数时，返回当前按键值，App将之输出到终端。
+```shell
+# ls
+driver
+# cd driver/
+# ls
+buzzer.ko       hello_drv.ko    key.ko          led.ko
+buzzer_test     hello_drv_test  key_test        led_test
+# insmod key.ko 
+[ 2807.966999][  T111] key: loading out-of-tree module taints kernel.
+[ 2807.967834][  T111] key_init
+[ 2807.968626][  T111] keys node has been found!
+[ 2807.968717][  T111] gpio-pin num[0] = 221 
+[ 2807.968896][  T111] keydev.keyirq[i].irqnum 0x91
+[ 2807.968986][  T111] gpio-pin num[1] = 222 
+[ 2807.971312][  T111] keydev.keyirq[i].irqnum 0x0
+[ 2807.980023][  T111] gpio-pin num[2] = 223 
+[ 2807.980120][  T111] keydev.keyirq[i].irqnum 0x0
+[ 2807.984659][  T111] gpio-pin num[3] = 224 
+[ 2807.989713][  T111] keydev.keyirq[i].irqnum 0x0
+[ 2807.993423][  T111] gpio-pin num[4] = 229 
+[ 2807.998217][  T111] keydev.keyirq[i].irqnum 0x0
+[ 2808.002175][  T111] gpio-pin num[5] = 230 
+[ 2808.006962][  T111] keydev.keyirq[i].irqnum 0x0
+[ 2808.010926][  T111] gpio-pin num[6] = 231 
+[ 2808.015937][  T111] keydev.keyirq[i].irqnum 0x0
+[ 2808.019680][  T111] gpio-pin num[7] = 232 
+[ 2808.023825][  T111] keydev.keyirq[i].irqnum 0x0
+[ 2808.029268][  T111] irq 0 request failed!
+[ 2808.032475][  T111] irq 0 request failed!
+[ 2808.037148][  T111] irq 0 request failed!
+[ 2808.040621][  T111] irq 0 request failed!
+[ 2808.044690][  T111] irq 0 request failed!
+[ 2808.049470][  T111] irq 0 request failed!
+[ 2808.052839][  T111] irq 0 request failed!
+[ 2808.057467][  T111] major:251
+# [ 2808.264785][    C0] num:221 key_val:0
+
+# ./key_test 
+open /dev/key success.
+[ 2815.470608][  T113] kernel senddata ok!
+[ 2825.804772][    C0] num:221 key_val:1
+[ 2825.804852][  T113] kernel senddata ok!
+key value = 0x1
+[ 2825.984769][    C0] num:221 key_val:0
+[ 2825.984850][  T113] kernel senddata ok!
+[ 2829.194772][    C0] num:221 key_val:1
+[ 2829.194853][  T113] kernel senddata ok!
+key value = 0x1
+[ 2829.374771][    C0] num:221 key_val:0
+[ 2829.374853][  T113] kernel senddata ok!
+[ 2831.084771][    C0] num:221 key_val:1
+[ 2831.084853][  T113] kernel senddata ok!
+key value = 0x1
+[ 2831.924771][    C0] num:221 key_val:0
+[ 2831.924850][  T113] kernel senddata ok!
+[ 2832.684768][    C0] num:221 key_val:1
+[ 2832.684847][  T113] kernel senddata ok!
+key value = 0x1
+[ 2832.894778][    C0] num:221 key_val:0
+[ 2832.894857][  T113] kernel senddata ok!
+[ 2833.814771][    C0] num:221 key_val:1
+[ 2833.814854][  T113] kernel senddata ok!
+key value = 0x1
+[ 2834.424768][    C0] num:221 key_val:0
+[ 2834.424850][  T113] kernel senddata ok!
+[ 2835.104769][    C0] num:221 key_val:1
+[ 2835.104851][  T113] kernel senddata ok!
+key value = 0x1
+[ 2835.244768][    C0] num:221 key_val:0
+[ 2835.244850][  T113] kernel senddata ok!
+[ 2835.854771][    C0] num:221 key_val:1
+[ 2835.854850][  T113] kernel senddata ok!
+key value = 0x1
+[ 2835.964776][    C0] num:221 key_val:0
+[ 2835.964856][  T113] kernel senddata ok!
+[ 2836.444769][    C0] num:221 key_val:1
+[ 2836.444848][  T113] kernel senddata ok!
+key value = 0x1
+[ 2836.534771][    C0] num:221 key_val:0
+[ 2836.534852][  T113] kernel senddata ok!
+[ 2837.054772][    C0] num:221 key_val:1
+[ 2837.054850][  T113] kernel senddata ok!
+key value = 0x1
+[ 2837.144771][    C0] num:221 key_val:0
+[ 2837.144857][  T113] kernel senddata ok!
+[ 2837.564769][    C0] num:221 key_val:1
+[ 2837.564847][  T113] kernel senddata ok!
+key value = 0x1
+[ 2837.664769][    C0] num:221 key_val:0
+[ 2837.664849][  T113] kernel senddata ok!
+[ 2837.984770][    C0] num:221 key_val:1
+[ 2837.984848][  T113] kernel senddata ok!
+key value = 0x1
+[ 2838.094773][    C0] num:221 key_val:0
+[ 2838.094854][  T113] kernel senddata ok!
+^C
+# rmmod key
+[ 2849.650562][  T114] key_exit
+# 
+
+
+```
 
 参考 https://to-run-away.blog.csdn.net/article/details/88080880?spm=1001.2014.3001.5502

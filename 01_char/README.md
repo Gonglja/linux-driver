@@ -20,6 +20,6 @@
 |11_led_mutex|arm|:heavy_check_mark:|与10信号量现象一致|
 |12_key_input|arm|:heavy_check_mark:|首先配置要捕获哪个按键，接着直接读，当按键按下时，会返回当前按键的值|
 |13_led_timer|arm|:heavy_check_mark:|加载驱动后，默认开启定时器；后面通过`./led_test` app可以去配置该定时器（打开、关闭、配置周期）|
-|14_key_irq|arm|:heavy_check_mark:| 加载驱动后，默认开启定时器；后面通过按按键key0发出中断，被cpu捕获，调用中断处理函数；中断处理中则是打开定时器，超时后执行回调函数，即打印消息|
+|14_key_irq|arm|:heavy_check_mark:| 加载驱动后，默认开启定时器；后面通过按按键key0发出中断，被cpu捕获，调用中断处理函数；中断处理中则是打开定时器，超时后执行回调函数，即打印消息; 通过应用层代码调用read，返回按键值。|
 
 
