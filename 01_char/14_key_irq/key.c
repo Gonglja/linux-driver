@@ -38,7 +38,7 @@ struct key_dev{
     struct device_node  *nd;        /* 设备节点 */
     int                 keys[KEY_NUM];    /* 8个key的gpio编号 */
     struct mutex        mutex;      /* 互斥量 */
-    unsigned char       select[0];  /* 可选择8个按键，0x1 << i */
+    unsigned char       select[1];  /* 可选择8个按键，0x1 << i */
     struct timer_list   timer;      /* timer */
     unsigned long       timer_data; /* timer data */
     struct key_irq      keyirq[KEY_NUM];     /* key irq */   
@@ -78,11 +78,11 @@ static ssize_t key_read(struct file *file, char __user *buf, size_t size, loff_t
     char res[1] = {0};
     unsigned int releasekey;
 
-    res[0] = atomic_read(&keydev.keyirq[0].val) ? 1 : 0;
-    releasekey = atomic_read(&keydev.keyirq[0].releasekey);
+    res[0] = atomic_read(&dev->keyirq[0].val) ? 1 : 0;
+    releasekey = atomic_read(&dev->keyirq[0].releasekey);
 
     if(releasekey) {
-        atomic_set(&keydev.keyirq[0].releasekey, 0);
+        atomic_set(&dev->keyirq[0].releasekey, 0);
         ret = copy_to_user(buf, res, 1);
         if( ret == 0 ) {
             printk("kernel senddata ok!\r\n");
